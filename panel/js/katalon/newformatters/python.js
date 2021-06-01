@@ -9,6 +9,10 @@ newFormatters.python = function(name, commands) {
 
 const newPython = function (scriptName) {
   let _scriptName = scriptName || "";
+  _scriptName = _scriptName.replace(/ /g, "_");
+  if (_scriptName.match(/^\d/)) {
+    _scriptName = "_" + _scriptName
+ }
 
   // Locator conversion
   const locatorType = {
@@ -17,35 +21,100 @@ const newPython = function (scriptName) {
     },
     name: (target) => {
       return `find_element_by_name('${target.replace(/'/g, "\\'")}')`;
-    // },
-    // css: (target) => {
-    //   return `'${target.replace(/"/g, "'")}'`;
-    // },
-    // id: (target) => {
-    //   return `'#${target.replace(/"/g, "'")}'`;
+    },
+    css: (target) => {
+      return `find_element_by_css('${target.replace(/'/g, "\\'")}')`;
+    },
+    id: (target) => {
+      return `find_element_by_id('${target.replace(/'/g, "\\'")}')`;
     }
   };
 
+  const specialKeyMap = {
+    '\${KEY_LEFT}': 'Keys.ARROW_LEFT',
+    '\${KEY_UP}': 'Keys.ARROW_UP',
+    '\${KEY_RIGHT}': 'Keys.ARROW_RIGHT',
+    '\${KEY_DOWN}': 'Keys.ARROW_DOWN',
+    '\${KEY_PAGE_UP}': 'Keys.PAGE_UP',
+    '\${KEY_PAGE_DOWN}': 'Keys.PAGE_DOWN',
+    '\${KEY_BACKSPACE}': 'Keys.BACKSPACE',
+    '\${KEY_DEL}': 'Keys.DELETE',
+    '\${KEY_DELETE}': 'Keys.BACKSPACE',
+    '\${KEY_ENTER}': 'Keys.ENTER',
+    '\${KEY_TAB}': 'Keys.TAB',
+    '\${KEY_HOME}': 'Keys.HOME',
+    '\${KEY_END}': 'Keys.END'
+  }
+
   // Selenese command conversion
   const seleneseCommands = {
-    open: "driver.get('_TARGET_')",
-    click: "driver.execute_script('arguments[0].click();', driver._BY_LOCATOR_)",
-    type: "driver._BY_LOCATOR_.send_keys('_VALUE_')",
-    pause: "time.sleep(_VALUE_/1000)"
+    "open": "# Get URL\n\t\tdriver.get('_TARGET_')",
+    "click": "# Click\n\t\tdriver.execute_script('arguments[0].click();', driver._BY_LOCATOR_)",
+    "type": "# Type\n\t\tdriver._BY_LOCATOR_.send_keys('_VALUE_')",
+    "sendKeys": "# Send key\n\t\tdriver._BY_LOCATOR_.send_keys(_SEND_KEY_)",
+    "pause": "# Pause\n\t\ttime.sleep(_VALUE_/1000)",
+    "verifyTitle": 
+      "# Verify Title\n" +
+      "\t\tif driver.title != '_TARGET_':\n" +
+      "\t\t\tNON_FATAL += 1\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'verify')\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Title matches - _TARGET_', 'verify')",
+    "assertTitle":
+      "# Assert Title\n" +
+      "\t\tif driver.title != '_TARGET_':\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'assert')\n" +
+      "\t\t\treturn -1\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Title matches - _TARGET_', 'assert')",
+    "verifyText":
+      "# Verify Text\n" +
+      "\t\tif driver._BY_LOCATOR_.text != '_VALUE_STR_':\n" +
+      "\t\t\tNON_FATAL += 1\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'verify')\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'verify')",
+    "assertText":
+      "# Assert Text\n" +
+      "\t\tif driver._BY_LOCATOR_.text != '_VALUE_STR_':\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'assert')\n" +
+      "\t\t\treturn -1\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'assert')",
+    "verifyValue":
+      "# Verify Value\n" +
+      "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
+      "\t\t\tNON_FATAL += 1\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'verify')\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'verify')",
+    "assertValue":
+      "# Assert Value\n" +
+      "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
+      "\t\t\toutput(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'assert')\n" +
+      "\t\t\treturn -1\n" +
+      "\t\telse:\n" +
+      "\t\t\toutput(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'assert')"
   };
 
   const header =
     "# BEGIN\n" +
     "from selenium import webdriver\n" +
     "from selenium.webdriver.common.keys import Keys\n" +
-    "from selenium.webdriver.common.desired_capabilities import DesiredCapabilities\n" +
+    "from selenium.webdriver.support.wait import WebDriverWait\n" +
+    "from selenium.common.exceptions import NoSuchElementException\n" +
     "from selenium.common.exceptions import TimeoutException\n" +
-    "from selenium.webdriver.support.ui import WebDriverWait\n" +
-    "from selenium.webdriver.support import expected_conditions as EC\n" +
-    "import time\n\n" +
-    "def _SCRIPT_NAME_(driver):\n";
-
-  const footer = "# END";
+    "import time\n" +
+    "import sys\n\n" +
+    "def _SCRIPT_NAME_(driver, ln):\n" +
+    "\ttry:\n" +
+    "\t\tNON_FATAL = 0\n\n";
+  const footer = 
+    "\t\t#Test pass\n" +
+    "\t\ttest_pass(driver, ln, NON_FATAL)\n" +
+    "\texcept NoSuchElementException:\n" +
+    "\t\tprint(f'{Fore.RED}Error: Element not found on line {sys.exc_info()[2].tb_lineno}. Try adding pause{Style.RESET_ALL}')\n" +
+    "# END";
 
   // Formats entire document
   function formatter(commands) {
@@ -64,8 +133,7 @@ const newPython = function (scriptName) {
         let cmd = seleneseCommands[command];
 
         if (typeof cmd == "undefined") {
-          accObj.content +=
-            "\n\n\t# WARNING: unsupported command ${command}. Object= ${JSON.stringify(commandObj)}\n\n";
+          accObj.content += `\n\n\t\t# WARNING: unsupported command ${command}. Object= ${JSON.stringify(commandObj)}\n\n\n`;
           return accObj;
         }
 
@@ -80,18 +148,19 @@ const newPython = function (scriptName) {
         let selectOption = value.trim().split("=", 2)[1];
         let locatorStr = locator(target);
 
+        
         funcStr = funcStr
           .replace(/_STEP_/g, accObj.step)
           .replace(/_TARGET_STR_/g, targetStr)
           .replace(/_BY_LOCATOR_/g, locatorStr)
           .replace(/_TARGET_/g, target)
-          //.replace(/_SEND_KEY_/g, specialKeyMap[value])
+          .replace(/_SEND_KEY_/g, specialKeyMap[value])
           .replace(/_VALUE_STR_/g, valueStr)
           .replace(/_VALUE_/g, value)
           .replace(/_SELECT_OPTION_/g, selectOption);
 
         accObj.step += 1;
-        accObj.content += `\t${funcStr}\n`;
+        accObj.content += `\t\t${funcStr}\n`;
 
         return accObj;
       },
