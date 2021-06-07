@@ -9,10 +9,6 @@ newFormatters.python = function(name, commands) {
 
 const newPython = function (scriptName) {
   let _scriptName = scriptName || "";
-  _scriptName = _scriptName.replace(/ /g, "_");
-  if (_scriptName.match(/^\d/)) {
-    _scriptName = "_" + _scriptName
- }
 
   // Locator conversion
   const locatorType = {
@@ -66,71 +62,72 @@ const newPython = function (scriptName) {
       "# Verify Title\n" +
       "\t\tif driver.title != '_TARGET_':\n" +
       "\t\t\tNON_FATAL += 1\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'verify')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'verify')\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Title matches - _TARGET_', 'verify')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Title matches - _TARGET_', 'verify')",
     "assertTitle":
       "# Assert Title\n" +
       "\t\tif driver.title != '_TARGET_':\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'assert')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Title does not match - _TARGET_ != ' + driver.title, 'assert')\n" +
       "\t\t\treturn -1\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Title matches - _TARGET_', 'assert')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Title matches - _TARGET_', 'assert')",
     "verifyText":
       "# Verify Text\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
       "\t\tdriver.execute_script('arguments[0].scrollIntoView();', driver._BY_LOCATOR_)\n" +
       "\t\tif is_safari and driver._BY_LOCATOR_.get_attribute('innerText') != '_VALUE_STR_':\n" +
       "\t\t\tNON_FATAL += 1\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('innerText'), 'verify')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('innerText'), 'verify')\n" +
       "\t\telif not is_safari and driver._BY_LOCATOR_.text != '_VALUE_STR_':\n" +
       "\t\t\tNON_FATAL += 1\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'verify')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'verify')\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'verify')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'verify')",
     "assertText":
       "# Assert Text\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
       "\t\tdriver.execute_script('arguments[0].scrollIntoView();', driver._BY_LOCATOR_)\n" +
       "\t\tif is_safari and driver._BY_LOCATOR_.get_attribute('innerText') != '_VALUE_STR_':\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('innerText'), 'assert')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('innerText'), 'assert')\n" +
       "\t\t\treturn -1\n" +
       "\t\telif not is_safari and driver._BY_LOCATOR_.text != '_VALUE_STR_':\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'assert')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Text does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.text, 'assert')\n" +
       "\t\t\treturn -1\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'assert')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Text matches - _VALUE_STR_', 'assert')",
     "verifyValue":
       "# Verify Value\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
       "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
       "\t\t\tNON_FATAL += 1\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'verify')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'verify')\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'verify')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'verify')",
     "assertValue":
       "# Assert Value\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
       "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
-      "\t\t\toutput(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'assert')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'assert')\n" +
       "\t\t\treturn -1\n" +
       "\t\telse:\n" +
-      "\t\t\toutput(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'assert')",
+      "\t\t\tstandard_output(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'assert')",
     "editContent":
       "# Edit content\n" +
       "\t\tdriver.execute_script(\"arguments[0].innerText = '_VALUE_STR_'\", driver._BY_LOCATOR_)"
   };
 
   const header =
-    "# BEGIN\n" +
+    "# BEGIN - _SCRIPT_NAME_\n" +
     "from selenium import webdriver\n" +
     "from selenium.webdriver.common.keys import Keys\n" +
     "from selenium.webdriver.support.wait import WebDriverWait\n" +
     "from selenium.common.exceptions import NoSuchElementException\n" +
     "from selenium.common.exceptions import TimeoutException\n" +
     "import time\n" +
-    "import sys\n\n" +
-    "def _SCRIPT_NAME_(driver, ln, is_safari):\n" +
+    "import sys\n" +
+    "from customoutput import standard_output, test_pass\n\n" +
+    "def selenium_test(driver, ln, is_safari):\n" +
     "\ttry:\n" +
     "\t\tNON_FATAL = 0\n" +
     "\t\tMAX_WAIT = 10\n\n";
