@@ -99,16 +99,16 @@ const newPython = function (scriptName) {
     "verifyValue":
       "# Verify Value\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
-      "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
+      "\t\tif driver._SCRIPT_REPLACE_ != '_VALUE_STR_':\n" +
       "\t\t\tNON_FATAL += 1\n" +
-      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'verify')\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._SCRIPT_REPLACE_, 'verify')\n" +
       "\t\telse:\n" +
       "\t\t\tstandard_output(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'verify')",
     "assertValue":
       "# Assert Value\n" +
       "\t\tWebDriverWait(driver, MAX_WAIT).until(lambda x: x._BY_LOCATOR_)\n" +
-      "\t\tif driver._BY_LOCATOR_.get_attribute('value') != '_VALUE_STR_':\n" +
-      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._BY_LOCATOR_.get_attribute('value'), 'assert')\n" +
+      "\t\tif driver._SCRIPT_REPLACE_ != '_VALUE_STR_':\n" +
+      "\t\t\tstandard_output(driver, ln, 'failed', 'Value does not match - _VALUE_STR_ != ' + driver._SCRIPT_REPLACE_, 'assert')\n" +
       "\t\t\treturn -1\n" +
       "\t\telse:\n" +
       "\t\t\tstandard_output(driver, ln, 'passed', 'Value matches - _VALUE_STR_', 'assert')",
@@ -180,6 +180,10 @@ const newPython = function (scriptName) {
           .replace(/_VALUE_STR_/g, valueStr)
           .replace(/_VALUE_/g, value)
           .replace(/_SELECT_OPTION_/g, selectOption);
+        
+          if (funcStr.includes("_SCRIPT_REPLACE_")) {
+            funcStr = funcStr.replace(/_SCRIPT_REPLACE_/g, scriptReplacer(locatorStr))
+          }
 
         accObj.step += 1;
         accObj.content += `\t\t${funcStr}\n`;
@@ -206,6 +210,30 @@ const newPython = function (scriptName) {
     }
     
     return locatorFunc(selectorStr);
+  }
+
+  function scriptReplacer(locatorStr) {
+    let s = "execute_script('return document.querySelector(`";
+    let temp = locatorStr.split("'");
+    // Name
+    if (locatorStr.includes("find_element_by_name")) {
+      s += "input" + "[name*=\"" + temp[1] + "\"]";
+    }
+    // ID
+    else if (locatorStr.includes("find_element_by_id")) {
+      s += "input" + "[id*=\"" + temp[1] + "\"]";
+    }
+    // CSS
+    else if (locatorStr.includes("find_element_by_css_selector")) {
+      s += "input" + "[css*=\"" + temp[1] + "\"]"; //not fully tested
+    }
+    // XPath
+    else if (locatorStr.includes("find_element_by_xpath")) {
+      s += temp[1]; //not fully tested
+    }
+
+    s += "`).value')";
+    return s;
   }
 
   return {
