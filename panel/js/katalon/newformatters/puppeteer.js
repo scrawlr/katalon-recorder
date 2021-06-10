@@ -123,7 +123,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
         captureentirepagescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\`, fullPage: true });`,
         bringbrowsertoforeground: (x) => `await page.bringToFront();`,
         refresh: (x) => `await page.reload();`,
-        echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
+        // echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
         get: (x) => `await page.goto(\`${locator(x.target)}\`);${waitForNavigationIfNeeded(x)}`,
         comment: (x) => `// ${locator(x.target)}`,
         submit: (x) => `formElement = await page.$x(\`${locator(x.target)}\`);\n\tawait page.evaluate(form => form.submit(), formElement[0]);\n\tawait page.waitForNavigation();`,
@@ -135,6 +135,12 @@ const puppeteer = function (scriptName, isWithComment = false) {
         waitforpagetoload: (x) => `await page.waitForFunction(() => { while (document.readyState !== 'complete'); return true; });`,
         waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
         waitforelementpresent: (x) => `await page.waitForXPath(\`${locator(x.target)}\`);`,
+        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { console.log("verifyTitle PASSED."); } else { console.log("verifyTitle FAILED. Title not matching."); }`,
+        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { console.log("assertTitle PASSED."); } else { throw "verifyTitle FAILED. Title not matching."; }`,
+        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { console.log("verifyText PASSED."); } else { console.log("verifyText FAILED. Text not matching."); }`,
+        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { console.log("assertText PASSED."); } else { throw "verifyText FAILED. Text not matching."; }`,
+        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { console.log("verifyValue PASSED."); } else { console.log("verifyValue FAILED. Value not matching."); }`,
+        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { console.log("assertValue PASSED."); } else { throw "verifyValue FAILED. Value not matching."; }`,
     };
 
     /**
@@ -143,7 +149,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
      * @return string}
      */
     function waitForNavigationIfNeeded(command) {
-        if (command.target.toLowerCase().startsWith("link=")) {
+        if (command.target.toLowerCase().startsWith("link=")){ //|| command.target.includes("/a/")) {
             // It's a link, the page is probably going to change
             return `\n\tawait page.waitForNavigation();`;
         }
@@ -197,8 +203,8 @@ const puppeteer = function (scriptName, isWithComment = false) {
                 accObj.content +=
                     `// Original Katalon Recorder info - ${oldCommand}\n`
             }
-            accObj.content += `${cmdString}\n`
-
+            let modifiedOutput = `try{${cmdString}}catch{console.log('waiting'); await page.waitForTimeout(250); await page.waitForNavigation(); try{${cmdString}}catch{console.log('Error');}}`;
+            accObj.content += `${modifiedOutput}\n\n`
             return accObj
         }, { step: 1, content: "" })
 
