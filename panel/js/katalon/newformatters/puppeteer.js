@@ -10,6 +10,8 @@ const puppeteer = function (scriptName, isWithComment = false) {
      */
     css2xpath = (function () { var b = [/\[([^\]~\$\*\^\|\!]+)(=[^\]]+)?\]/g, "[@$1$2]", /\s*,\s*/g, "|", /\s*(\+|~|>)\s*/g, "$1", /([a-zA-Z0-9\_\-\*])~([a-zA-Z0-9\_\-\*])/g, "$1/following-sibling::$2", /([a-zA-Z0-9\_\-\*])\+([a-zA-Z0-9\_\-\*])/g, "$1/following-sibling::*[1]/self::$2", /([a-zA-Z0-9\_\-\*])>([a-zA-Z0-9\_\-\*])/g, "$1/$2", /\[([^=]+)=([^'|"][^\]]*)\]/g, "[$1='$2']", /(^|[^a-zA-Z0-9\_\-\*])(#|\.)([a-zA-Z0-9\_\-]+)/g, "$1*$2$3", /([\>\+\|\~\,\s])([a-zA-Z\*]+)/g, "$1//$2", /\s+\/\//g, "//", /([a-zA-Z0-9\_\-\*]+):first-child/g, "*[1]/self::$1", /([a-zA-Z0-9\_\-\*]+):last-child/g, "$1[not(following-sibling::*)]", /([a-zA-Z0-9\_\-\*]+):only-child/g, "*[last()=1]/self::$1", /([a-zA-Z0-9\_\-\*]+):empty/g, "$1[not(*) and not(normalize-space())]", /([a-zA-Z0-9\_\-\*]+):not\(([^\)]*)\)/g, function (f, e, d) { return e.concat("[not(", a(d).replace(/^[^\[]+\[([^\]]*)\].*$/g, "$1"), ")]") }, /([a-zA-Z0-9\_\-\*]+):nth-child\(([^\)]*)\)/g, function (f, e, d) { switch (d) { case "n": return e; case "even": return "*[position() mod 2=0 and position()>=0]/self::" + e; case "odd": return e + "[(count(preceding-sibling::*) + 1) mod 2=1]"; default: d = (d || "0").replace(/^([0-9]*)n.*?([0-9]*)$/, "$1+$2").split("+"); d[1] = d[1] || "0"; return "*[(position()-".concat(d[1], ") mod ", d[0], "=0 and position()>=", d[1], "]/self::", e) } }, /:contains\(([^\)]*)\)/g, function (e, d) { return "[contains(text(),'" + d + "')]" }, /\[([a-zA-Z0-9\_\-]+)\|=([^\]]+)\]/g, "[@$1=$2 or starts-with(@$1,concat($2,'-'))]", /\[([a-zA-Z0-9\_\-]+)\*=([^\]]+)\]/g, "[contains(@$1,$2)]", /\[([a-zA-Z0-9\_\-]+)~=([^\]]+)\]/g, "[contains(concat(' ',normalize-space(@$1),' '),concat(' ',$2,' '))]", /\[([a-zA-Z0-9\_\-]+)\^=([^\]]+)\]/g, "[starts-with(@$1,$2)]", /\[([a-zA-Z0-9\_\-]+)\$=([^\]]+)\]/g, function (f, e, d) { return "[substring(@".concat(e, ",string-length(@", e, ")-", d.length - 3, ")=", d, "]") }, /\[([a-zA-Z0-9\_\-]+)\!=([^\]]+)\]/g, "[not(@$1) or @$1!=$2]", /#([a-zA-Z0-9\_\-]+)/g, "[@id='$1']", /\.([a-zA-Z0-9\_\-]+)/g, "[contains(concat(' ',normalize-space(@class),' '),' $1 ')]", /\]\[([^\]]+)/g, " and ($1)"], c = b.length; return function a(e) { var d = 0; while (d < c) { e = e.replace(b[d++], b[d++]) } return "//" + e } })();
 
+    let commandCnt = 0;
+
     const locatorType = {
 
         xpath: (target) => {
@@ -130,17 +132,17 @@ const puppeteer = function (scriptName, isWithComment = false) {
         sendkeys: (x) => `await page.keyboard.press(\`${seleniumKeyVars(x.value)}\`)${waitForNavigationIfNeeded(x)}`,
         selectframe: (x) => `var frames = await page.frames();\n\tvar newFrame = await frames.find(f => f.name() === \`${x.target}\`);`,
         selectwindow: (x) => `tabs = await browser.pages();\n\tconsole.log(tabs);`,
-        assertelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { console.log("assertElementPresent PASSED."); } else { throw "assertElementPresent FAILED. Element not found."; }`,
-        verifyelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { console.log("verifyElementPresent PASSED."); } else { console.log("verifyElementPresent FAILED. Element not found."); }`,
+        assertelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("assertElementPresent PASSED."); } else { await browser.close(); throw "assertElementPresent FAILED. Element not found."; }`,
+        verifyelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("verifyElementPresent PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         waitforpagetoload: (x) => `await page.waitForFunction(() => { while (document.readyState !== 'complete'); return true; });`,
         waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
         waitforelementpresent: (x) => `await page.waitForXPath(\`${locator(x.target)}\`);`,
-        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { console.log("verifyTitle PASSED."); } else { console.log("verifyTitle FAILED. Title not matching."); }`,
-        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { console.log("assertTitle PASSED."); } else { throw "verifyTitle FAILED. Title not matching."; }`,
-        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { console.log("verifyText PASSED."); } else { console.log("verifyText FAILED. Text not matching."); }`,
-        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { console.log("assertText PASSED."); } else { throw "verifyText FAILED. Text not matching."; }`,
-        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { console.log("verifyValue PASSED."); } else { console.log("verifyValue FAILED. Value not matching."); }`,
-        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { console.log("assertValue PASSED."); } else { throw "verifyValue FAILED. Value not matching."; }`,
+        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED."); } else { await browser.close(); throw "verifyTitle FAILED. Title not matching."; }`,
+        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED."); } else { await browser.close(); throw "verifyText FAILED. Text not matching."; }`,
+        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED."); } else { await browser.close(); throw "verifyValue FAILED. Value not matching."; }`,
     };
 
     /**
@@ -160,14 +162,19 @@ const puppeteer = function (scriptName, isWithComment = false) {
     const header =
         "// Script Name: {_SCRIPT_NAME_}\n\n" +
         "const puppeteer = require('puppeteer');\n\n" +
-        "(async () => {\n" +
+        "const puppetTest = async (output) => {\n" +
+        "let waitNotNeeded = [];\n" +
+        "let verifyFailed = [];\n" +
         "const browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized'] });\n" +
         "const page = await browser.newPage();\n" +
+        "await page.setDefaultNavigationTimeout(2000);\n" +
         "let element, formElement, tabs;\n\n"
 
     const footer =
         "await browser.close();\n" +
-        "})();"
+        "return [waitNotNeeded, verifyFailed];\n" +
+        "}\n" +
+        "module.exports = puppetTest;"
 
 
     function formatter(commands) {
@@ -181,7 +188,8 @@ const puppeteer = function (scriptName, isWithComment = false) {
     }
 
     function commandExports(commands) {
-
+        let waitCnt = 0;
+        
         let output = commands.reduce((accObj, commandObj) => {
             let { command, target, value } = commandObj
 
@@ -203,7 +211,19 @@ const puppeteer = function (scriptName, isWithComment = false) {
                 accObj.content +=
                     `// Original Katalon Recorder info - ${oldCommand}\n`
             }
-            let modifiedOutput = `try{${cmdString}}catch{console.log('waiting'); await page.waitForTimeout(250); await page.waitForNavigation(); try{${cmdString}}catch{console.log('Error');}}`;
+            
+
+            let c = command.toLowerCase();
+            let modifiedOutput = "";
+            if (c == "click" || c == "sendkeys") {
+                modifiedOutput = `//[C#${commandCnt}]\n${cmdString}\n//[W#${waitCnt}]\nawait page.waitForNavigation().catch(err => waitNotNeeded.push("[W#${waitCnt}]"));\n`;
+                waitCnt++;
+            }
+            else {
+                modifiedOutput = `//[C#${commandCnt}]\n${cmdString}`;
+            }
+            commandCnt++;
+            
             accObj.content += `${modifiedOutput}\n\n`
             return accObj
         }, { step: 1, content: "" })
