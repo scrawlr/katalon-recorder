@@ -11,6 +11,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
     css2xpath = (function () { var b = [/\[([^\]~\$\*\^\|\!]+)(=[^\]]+)?\]/g, "[@$1$2]", /\s*,\s*/g, "|", /\s*(\+|~|>)\s*/g, "$1", /([a-zA-Z0-9\_\-\*])~([a-zA-Z0-9\_\-\*])/g, "$1/following-sibling::$2", /([a-zA-Z0-9\_\-\*])\+([a-zA-Z0-9\_\-\*])/g, "$1/following-sibling::*[1]/self::$2", /([a-zA-Z0-9\_\-\*])>([a-zA-Z0-9\_\-\*])/g, "$1/$2", /\[([^=]+)=([^'|"][^\]]*)\]/g, "[$1='$2']", /(^|[^a-zA-Z0-9\_\-\*])(#|\.)([a-zA-Z0-9\_\-]+)/g, "$1*$2$3", /([\>\+\|\~\,\s])([a-zA-Z\*]+)/g, "$1//$2", /\s+\/\//g, "//", /([a-zA-Z0-9\_\-\*]+):first-child/g, "*[1]/self::$1", /([a-zA-Z0-9\_\-\*]+):last-child/g, "$1[not(following-sibling::*)]", /([a-zA-Z0-9\_\-\*]+):only-child/g, "*[last()=1]/self::$1", /([a-zA-Z0-9\_\-\*]+):empty/g, "$1[not(*) and not(normalize-space())]", /([a-zA-Z0-9\_\-\*]+):not\(([^\)]*)\)/g, function (f, e, d) { return e.concat("[not(", a(d).replace(/^[^\[]+\[([^\]]*)\].*$/g, "$1"), ")]") }, /([a-zA-Z0-9\_\-\*]+):nth-child\(([^\)]*)\)/g, function (f, e, d) { switch (d) { case "n": return e; case "even": return "*[position() mod 2=0 and position()>=0]/self::" + e; case "odd": return e + "[(count(preceding-sibling::*) + 1) mod 2=1]"; default: d = (d || "0").replace(/^([0-9]*)n.*?([0-9]*)$/, "$1+$2").split("+"); d[1] = d[1] || "0"; return "*[(position()-".concat(d[1], ") mod ", d[0], "=0 and position()>=", d[1], "]/self::", e) } }, /:contains\(([^\)]*)\)/g, function (e, d) { return "[contains(text(),'" + d + "')]" }, /\[([a-zA-Z0-9\_\-]+)\|=([^\]]+)\]/g, "[@$1=$2 or starts-with(@$1,concat($2,'-'))]", /\[([a-zA-Z0-9\_\-]+)\*=([^\]]+)\]/g, "[contains(@$1,$2)]", /\[([a-zA-Z0-9\_\-]+)~=([^\]]+)\]/g, "[contains(concat(' ',normalize-space(@$1),' '),concat(' ',$2,' '))]", /\[([a-zA-Z0-9\_\-]+)\^=([^\]]+)\]/g, "[starts-with(@$1,$2)]", /\[([a-zA-Z0-9\_\-]+)\$=([^\]]+)\]/g, function (f, e, d) { return "[substring(@".concat(e, ",string-length(@", e, ")-", d.length - 3, ")=", d, "]") }, /\[([a-zA-Z0-9\_\-]+)\!=([^\]]+)\]/g, "[not(@$1) or @$1!=$2]", /#([a-zA-Z0-9\_\-]+)/g, "[@id='$1']", /\.([a-zA-Z0-9\_\-]+)/g, "[contains(concat(' ',normalize-space(@class),' '),' $1 ')]", /\]\[([^\]]+)/g, " and ($1)"], c = b.length; return function a(e) { var d = 0; while (d < c) { e = e.replace(b[d++], b[d++]) } return "//" + e } })();
 
     let commandCnt = 0;
+    let waitCnt = 0;
 
     const locatorType = {
 
@@ -113,11 +114,11 @@ const puppeteer = function (scriptName, isWithComment = false) {
     // katalon
     // https://docs.katalon.com/katalon-recorder/docs/selenese-selenium-ide-commands-reference.html
     const seleneseCommands = {
-        open: (x) => `await page.goto(\`${locator(x.target)}\`, { waitUntil: 'networkidle0' });`,
+        open: (x) => `await helper.open(page, \`${locator(x.target)}\`, \`networkidle0\`);`, // open: (x) => `await page.goto(\`${locator(x.target)}\`, { waitUntil: 'networkidle0' });`,
         doubleclick: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].click({ clickCount: 2 });`,
-        click: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].click();${waitForNavigationIfNeeded(x)}`,
+        click: (x) => `await helper.click(page, \`${locator(x.target)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // click: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].click();`,
         store: (x) => `await let ${locator(x.target)} = ${x.value};`,
-        type: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].type(\`${x.value}\`);`,
+        type: (x) => `await helper.type(page, \`${locator(x.target)}\`, \`${x.value}\`);`, // type: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].type(\`${x.value}\`);`,
         pause: (x) => `await page.waitFor(parseInt('${locator(x.target)}'));`,
         mouseover: (x) => `await page.hover(\`${locator(x.target)}\`);`,
         deleteallvisiblecookies: (x) => `await page.deleteCookie(await page.cookies());`,
@@ -125,25 +126,24 @@ const puppeteer = function (scriptName, isWithComment = false) {
         captureentirepagescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\`, fullPage: true });`,
         bringbrowsertoforeground: (x) => `await page.bringToFront();`,
         refresh: (x) => `await page.reload();`,
-        // echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
-        echo: (x) => `let [ele] = await page.$x(\`${locator(x.target)}\`)\n\tawait ele.hover();`,
-        get: (x) => `await page.goto(\`${locator(x.target)}\`);${waitForNavigationIfNeeded(x)}`,
+        echo: (x) => `await helper.hover(page, \`${locator(x.target)}\`);`, // echo: (x) => `let [ele] = await page.$x(\`${locator(x.target)}\`)\n\tawait ele.hover();`, // echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
+        get: (x) => `await page.goto(\`${locator(x.target)}\`);`,
         comment: (x) => `// ${locator(x.target)}`,
-        submit: (x) => `formElement = await page.$x(\`${locator(x.target)}\`);\n\tawait page.evaluate(form => form.submit(), formElement[0]);\n\tawait page.waitForNavigation();`,
-        sendkeys: (x) => `await page.keyboard.press(\`${seleniumKeyVars(x.value)}\`)${waitForNavigationIfNeeded(x)}`,
+        submit: (x) => `await helper.submit(page, \`${locator(x.target)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // submit: (x) => `formElement = await page.$x(\`${locator(x.target)}\`);\n\tawait page.evaluate(form => form.submit(), formElement[0]);\n\tawait page.waitForNavigation();`,
+        sendkeys: (x) => `await helper.sendKeys(page, \`${seleniumKeyVars(x.value)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // sendkeys: (x) => `await page.keyboard.press(\`${seleniumKeyVars(x.value)}\`)`,
         selectframe: (x) => `var frames = await page.frames();\n\tvar newFrame = await frames.find(f => f.name() === \`${x.target}\`);`,
         selectwindow: (x) => `tabs = await browser.pages();\n\tconsole.log(tabs);`,
         assertelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("assertElementPresent PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertElementPresent FAILED [C#${commandCnt}]. Element not found."; }`,
         verifyelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("verifyElementPresent PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         waitforpagetoload: (x) => `await page.waitForFunction(() => { while (document.readyState !== 'complete'); return true; });`,
-        waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
+        waitforvisible: (x) => `await helper.waitForVisible(page, \`${locator(x.target)}\`);`, // waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
         waitforelementpresent: (x) => `await page.waitForXPath(\`${locator(x.target)}\`);`,
-        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertTitle FAILED [C#${commandCnt}]. Title not matching."; }`,
-        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertText FAILED [C#${commandCnt}]. Text not matching."; }`,
-        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertValue FAILED [C#${commandCnt}]. Value not matching."; }`,
+        verifytitle: (x) => `await helper.verifyTitle(page, \`${x.target}\`, output, ${commandCnt});`, // verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttitle: (x) => `await helper.assertTitle(browser, page, \`${x.target}\`, output, ${commandCnt});`, // asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertTitle FAILED [C#${commandCnt}]. Title not matching."; }`,
+        verifytext: (x) => `await helper.verifyText(page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttext: (x) => `await helper.assertText(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertText FAILED [C#${commandCnt}]. Text not matching."; }`,
+        verifyvalue: (x) => `await helper.verifyValue(page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        assertvalue: (x) => `await helper.assertValue(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertValue FAILED [C#${commandCnt}]. Value not matching."; }`,
     };
 
     /**
@@ -162,18 +162,18 @@ const puppeteer = function (scriptName, isWithComment = false) {
 
     const header =
         "// Script Name: {_SCRIPT_NAME_}\n\n" +
+        "const helper = require('../helpers/helper');\n" +
         "const puppeteer = require('puppeteer');\n\n" +
         "const puppetTest = async (output) => {\n" +
-        "const extensionRequired = false;\n" + // default value of false since we assume that the majority of tests are not extension based
-        "const extensionPath = '../fe-browser-extentions/dist'\n" +
-        "let browser;\n" +
-        "if (!extensionRequired) browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized']});\n" +
-        "else browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized', `--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`]});\n\n" +
+        "const EXTENSION_REQUIRED = false;\n" + // default value of false since we assume that the majority of tests are not extension based
+        "const EXTENSION_PATH = '../fe-browser-extentions/dist'\n" +
+        "let args = ['--start-maximized']\n" +
+        "if (EXTENSION_REQUIRED) args.push(...[`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`])\n" +
+        "let browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: args});\n\n" +
         "const page = await browser.newPage();\n" +
         "await page.setDefaultNavigationTimeout(5000);\n" +
         "let waitNotNeeded = [];\n" +
-        "let verifyFailed = [];\n" +
-        "let element, formElement, tabs;\n\n"
+        "let verifyFailed = [];\n\n"
 
     const footer =
         "await browser.close();\n" +
@@ -193,8 +193,6 @@ const puppeteer = function (scriptName, isWithComment = false) {
     }
 
     function commandExports(commands) {
-        let waitCnt = 0;
-        
         let output = commands.reduce((accObj, commandObj) => {
             let { command, target, value } = commandObj
 
@@ -220,13 +218,8 @@ const puppeteer = function (scriptName, isWithComment = false) {
 
             let c = command.toLowerCase();
             let modifiedOutput = "";
-            if (c == "click" || c == "sendkeys") {
-                modifiedOutput = `//[C#${commandCnt}]\n${cmdString}\n//[W#${waitCnt}]\nawait page.waitForNavigation().catch(err => waitNotNeeded.push("[W#${waitCnt}]"));\n`;
-                waitCnt++;
-            }
-            else {
-                modifiedOutput = `//[C#${commandCnt}]\n${cmdString}`;
-            }
+            if (c == "click" || c == "sendkeys" || c == "submit") waitCnt++;
+            modifiedOutput = `//[C#${commandCnt}]\n${cmdString}`;
             commandCnt++;
             
             accObj.content += `${modifiedOutput}\n\n`
