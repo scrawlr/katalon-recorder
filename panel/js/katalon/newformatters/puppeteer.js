@@ -126,23 +126,24 @@ const puppeteer = function (scriptName, isWithComment = false) {
         bringbrowsertoforeground: (x) => `await page.bringToFront();`,
         refresh: (x) => `await page.reload();`,
         // echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
+        echo: (x) => `let [ele] = await page.$x(\`${locator(x.target)}\`)\n\tawait ele.hover();`,
         get: (x) => `await page.goto(\`${locator(x.target)}\`);${waitForNavigationIfNeeded(x)}`,
         comment: (x) => `// ${locator(x.target)}`,
         submit: (x) => `formElement = await page.$x(\`${locator(x.target)}\`);\n\tawait page.evaluate(form => form.submit(), formElement[0]);\n\tawait page.waitForNavigation();`,
         sendkeys: (x) => `await page.keyboard.press(\`${seleniumKeyVars(x.value)}\`)${waitForNavigationIfNeeded(x)}`,
         selectframe: (x) => `var frames = await page.frames();\n\tvar newFrame = await frames.find(f => f.name() === \`${x.target}\`);`,
         selectwindow: (x) => `tabs = await browser.pages();\n\tconsole.log(tabs);`,
-        assertelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("assertElementPresent PASSED."); } else { await browser.close(); throw "assertElementPresent FAILED. Element not found."; }`,
-        verifyelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("verifyElementPresent PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        assertelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("assertElementPresent PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertElementPresent FAILED [C#${commandCnt}]. Element not found."; }`,
+        verifyelementpresent: (x) => `if (await page.$(\`${locator(x.target)}\`) !== null) { if (output) console.log("verifyElementPresent PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         waitforpagetoload: (x) => `await page.waitForFunction(() => { while (document.readyState !== 'complete'); return true; });`,
         waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
         waitforelementpresent: (x) => `await page.waitForXPath(\`${locator(x.target)}\`);`,
-        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED."); } else { await browser.close(); throw "verifyTitle FAILED. Title not matching."; }`,
-        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED."); } else { await browser.close(); throw "verifyText FAILED. Text not matching."; }`,
-        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
-        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED."); } else { await browser.close(); throw "verifyValue FAILED. Value not matching."; }`,
+        verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "verifyTitle FAILED [C#${commandCnt}]. Title not matching."; }`,
+        verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "verifyText FAILED [C#${commandCnt}]. Text not matching."; }`,
+        verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "verifyValue FAILED [C#${commandCnt}]. Value not matching."; }`,
     };
 
     /**
@@ -151,7 +152,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
      * @return string}
      */
     function waitForNavigationIfNeeded(command) {
-        if (command.target.toLowerCase().startsWith("link=")){ //|| command.target.includes("/a/")) {
+        if (command.target.toLowerCase().startsWith("link=")){ 
             // It's a link, the page is probably going to change
             return `\n\tawait page.waitForNavigation();`;
         }
@@ -163,11 +164,15 @@ const puppeteer = function (scriptName, isWithComment = false) {
         "// Script Name: {_SCRIPT_NAME_}\n\n" +
         "const puppeteer = require('puppeteer');\n\n" +
         "const puppetTest = async (output) => {\n" +
+        "const extensionRequired = false;\n" + // default value of false since we assume that the majority of tests are not extension based
+        "const extensionPath = '../fe-browser-extentions/dist'\n" +
+        "let browser;\n" +
+        "if (!extensionRequired) browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized']});\n" +
+        "else browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized', `--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`]});\n\n" +
+        "const page = await browser.newPage();\n" +
+        "await page.setDefaultNavigationTimeout(5000);\n" +
         "let waitNotNeeded = [];\n" +
         "let verifyFailed = [];\n" +
-        "const browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: ['--start-maximized'] });\n" +
-        "const page = await browser.newPage();\n" +
-        "await page.setDefaultNavigationTimeout(2000);\n" +
         "let element, formElement, tabs;\n\n"
 
     const footer =
