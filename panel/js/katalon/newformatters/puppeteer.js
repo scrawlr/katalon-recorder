@@ -138,11 +138,11 @@ const puppeteer = function (scriptName, isWithComment = false) {
         waitforpagetoload: (x) => `await page.waitForFunction(() => { while (document.readyState !== 'complete'); return true; });`,
         waitforvisible: (x) => `await helper.waitForVisible(page, \`${locator(x.target)}\`);`, // waitforvisible: (x) => `await page.waitForXPath(\`${locator(x.target)}\`, { visible: true });`,
         waitforelementpresent: (x) => `await page.waitForXPath(\`${locator(x.target)}\`);`,
-        verifytitle: (x) => `await helper.verifyTitle(page, \`${x.target}\`, output, ${commandCnt});`, // verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        verifytitle: (x) => `await helper.verifyTitle(page, \`${x.target}\`, verifyFailed, output, ${commandCnt});`, // verifytitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("verifyTitle PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         asserttitle: (x) => `await helper.assertTitle(browser, page, \`${x.target}\`, output, ${commandCnt});`, // asserttitle: (x) => `if (await page.title() == \`${x.target}\`) { if (output) console.log("assertTitle PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertTitle FAILED [C#${commandCnt}]. Title not matching."; }`,
-        verifytext: (x) => `await helper.verifyText(page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        verifytext: (x) => `await helper.verifyText(page, \`${locator(x.target)}\`, \`${x.value}\`, verifyFailed, output, ${commandCnt});`, // verifytext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("verifyText PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         asserttext: (x) => `await helper.assertText(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertText FAILED [C#${commandCnt}]. Text not matching."; }`,
-        verifyvalue: (x) => `await helper.verifyValue(page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
+        verifyvalue: (x) => `await helper.verifyValue(page, \`${locator(x.target)}\`, \`${x.value}\`, verifyFailed, output, ${commandCnt});`, // verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         assertvalue: (x) => `await helper.assertValue(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertValue FAILED [C#${commandCnt}]. Value not matching."; }`,
     };
 
@@ -216,9 +216,9 @@ const puppeteer = function (scriptName, isWithComment = false) {
             }
             
 
-            let c = command.toLowerCase();
             let modifiedOutput = "";
-            if (c == "click" || c == "sendkeys" || c == "submit") waitCnt++;
+            let waitCommands = ['click', 'sendkeys', 'submit'];
+            if (waitCommands.includes(command.toLowerCase())) waitCnt++;
             modifiedOutput = `//[C#${commandCnt}]\n${cmdString}`;
             commandCnt++;
             
