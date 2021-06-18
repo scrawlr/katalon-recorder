@@ -345,6 +345,29 @@ LocatorBuilders.prototype.preciseXPath = function(xpath, e) {
  * ===== builders =====
  */
 
+LocatorBuilders.add('xpath:dusk', function(e) {
+    function attributesXPath(name, attributes) {
+        var locator = "//" + this.xpathHtmlElement(name) + "[";
+        locator += "@dusk=" + this.attributeValue(attributes['dusk']) + "]";
+        return this.preciseXPath(locator, e);
+    }
+    if (e.attributes) {
+        var atts = e.attributes;
+        var attsMap = {};
+        for (i = 0; i < atts.length; i++) {
+            var att = atts[i];
+            attsMap[att.name] = att.value;
+        }
+        if (attsMap['dusk'] != null) {
+            var locator = attributesXPath.call(this, e.nodeName.toLowerCase(), attsMap);
+            if (e == this.findElement(locator)) {
+                return locator;
+            }
+        }
+    }
+    return null;
+});
+
 LocatorBuilders.add('ui', function(pageElement) {
     return UIMap.getInstance().getUISpecifierString(pageElement,
         this.window.document);
@@ -426,31 +449,8 @@ LocatorBuilders.add('dom:name', function(e) {
     return null;
 });
 
-LocatorBuilders.add('xpath:link', function(e) {
-    if (e.nodeName == 'A') {
-        var text = e.textContent;
-        if (!text.match(/^\s*$/)) {
-            return this.preciseXPath("//" + this.xpathHtmlElement("a") + "[contains(text(),'" + text.replace(/^\s+/, '').replace(/\s+$/, '') + "')]", e);
-        }
-    }
-    return null;
-});
-
-LocatorBuilders.add('xpath:img', function(e) {
-    if (e.nodeName == 'IMG') {
-        if (e.alt != '') {
-            return this.preciseXPath("//" + this.xpathHtmlElement("img") + "[@alt=" + this.attributeValue(e.alt) + "]", e);
-        } else if (e.title != '') {
-            return this.preciseXPath("//" + this.xpathHtmlElement("img") + "[@title=" + this.attributeValue(e.title) + "]", e);
-        } else if (e.src != '') {
-            return this.preciseXPath("//" + this.xpathHtmlElement("img") + "[contains(@src," + this.attributeValue(e.src) + ")]", e);
-        }
-    }
-    return null;
-});
-
 LocatorBuilders.add('xpath:attributes', function(e) {
-    const PREFERRED_ATTRIBUTES = ['id', 'name', 'value', 'type', 'action', 'onclick'];
+    const PREFERRED_ATTRIBUTES = ['dusk', 'id', 'name', 'value', 'type', 'action', 'onclick'];
     var i = 0;
 
     function attributesXPath(name, attNames, attributes) {
