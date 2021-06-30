@@ -368,6 +368,26 @@ LocatorBuilders.add('xpath:dusk', function(e) {
     return null;
 });
 
+LocatorBuilders.add('xpath:duskRelative', function(e) {
+    var path = '';
+    var current = e;
+    while (current != null) {
+        if (current.parentNode != null) {
+            path = this.relativeXPathFromParent(current) + path;
+            if (1 == current.parentNode.nodeType && // ELEMENT_NODE
+                current.parentNode.getAttribute("dusk")) {
+                return this.preciseXPath("//" + this.xpathHtmlElement(current.parentNode.nodeName.toLowerCase()) +
+                    "[@dusk=" + this.attributeValue(current.parentNode.getAttribute('dusk')) + "]" +
+                    path, e);
+            }
+        } else {
+            return null;
+        }
+        current = current.parentNode;
+    }
+    return null;
+});
+
 LocatorBuilders.add('ui', function(pageElement) {
     return UIMap.getInstance().getUISpecifierString(pageElement,
         this.window.document);
