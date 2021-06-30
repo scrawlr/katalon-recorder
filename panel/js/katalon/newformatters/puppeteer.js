@@ -12,6 +12,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
 
     let commandCnt = 0;
     let waitCnt = 0;
+    let screenshotCnt = 0;
 
     const locatorType = {
 
@@ -61,6 +62,12 @@ const puppeteer = function (scriptName, isWithComment = false) {
 
         return locatorFunc(selectorStr)
 
+    }
+
+    function selector(target) {
+        let selectorStr = target.substr(target.indexOf("=") + 1, target.length);
+        let singleSelector = selectorStr.substr(selectorStr.indexOf(".") + 1, selectorStr.length);
+        return `.${singleSelector}`;
     }
 
 
@@ -119,16 +126,17 @@ const puppeteer = function (scriptName, isWithComment = false) {
         click: (x) => `await helper.click(page, \`${locator(x.target)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // click: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].click();`,
         store: (x) => `await let ${locator(x.target)} = ${x.value};`,
         type: (x) => `await helper.type(page, \`${locator(x.target)}\`, \`${x.value}\`);`, // type: (x) => `element = await page.$x(\`${locator(x.target)}\`);\n\tawait element[0].type(\`${x.value}\`);`,
-        pause: (x) => `await page.waitFor(parseInt('${locator(x.target)}'));`,
-        mouseover: (x) => `await page.hover(\`${locator(x.target)}\`);`,
+        pause: (x) => `await page.waitForTimeout(parseInt('${locator(x.target)}'));`,
+        mouseover: (x) => `await helper.hover(page, \`${locator(x.target)}\`);`, // mouseover: (x) => `await page.hover(\`${locator(x.target)}\`);`,
         deleteallvisiblecookies: (x) => `await page.deleteCookie(await page.cookies());`,
-        capturescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\` });`,
-        captureentirepagescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\`, fullPage: true });`,
+        capturescreenshot: (x) => `await helper.screenshot(page, ${screenshotCnt}, \`${_scriptName}\`);`, // capturescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\` });`,
+        captureentirepagescreenshot: (x) => `await helper.screenshotFullPage(page, ${screenshotCnt}, \`${_scriptName}\`);`, // captureentirepagescreenshot: (x) => `await page.screenshot({ path: \`${locator(x.target || "screenshot")}.jpg\`, fullPage: true });`,
         bringbrowsertoforeground: (x) => `await page.bringToFront();`,
         refresh: (x) => `await page.reload();`,
         echo: (x) => `await helper.hover(page, \`${locator(x.target)}\`);`, // echo: (x) => `let [ele] = await page.$x(\`${locator(x.target)}\`)\n\tawait ele.hover();`, // echo: (x) => `console.log(\`${locator(x.target)}\`, \`${x.value}\`);`,
         get: (x) => `await page.goto(\`${locator(x.target)}\`);`,
         comment: (x) => `// ${locator(x.target)}`,
+        "#": (x) => `// ${locator(x.target)}`,
         submit: (x) => `await helper.submit(page, \`${locator(x.target)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // submit: (x) => `formElement = await page.$x(\`${locator(x.target)}\`);\n\tawait page.evaluate(form => form.submit(), formElement[0]);\n\tawait page.waitForNavigation();`,
         sendkeys: (x) => `await helper.sendKeys(page, \`${seleniumKeyVars(x.value)}\`, \`[W#${waitCnt}]\`, waitNotNeeded, true);`, // sendkeys: (x) => `await page.keyboard.press(\`${seleniumKeyVars(x.value)}\`)`,
         selectframe: (x) => `var frames = await page.frames();\n\tvar newFrame = await frames.find(f => f.name() === \`${x.target}\`);`,
@@ -144,6 +152,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
         asserttext: (x) => `await helper.assertText(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // asserttext: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.innerText) == \`${x.value}\`) { if (output) console.log("assertText PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertText FAILED [C#${commandCnt}]. Text not matching."; }`,
         verifyvalue: (x) => `await helper.verifyValue(page, \`${locator(x.target)}\`, \`${x.value}\`, verifyFailed, output, ${commandCnt});`, // verifyvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("verifyValue PASSED [C#${commandCnt}]."); } else { verifyFailed.push("[C#${commandCnt}]"); }`,
         assertvalue: (x) => `await helper.assertValue(browser, page, \`${locator(x.target)}\`, \`${x.value}\`, output, ${commandCnt});`, // assertvalue: (x) => `var [e] = await page.$x(\`${locator(x.target)}\`);\n\tif (await e.evaluate(el => el.value) == \`${x.value}\`) { if (output) console.log("assertValue PASSED [C#${commandCnt}]."); } else { await browser.close(); throw "assertValue FAILED [C#${commandCnt}]. Value not matching."; }`,
+        waitforselector: (x) => `await page.waitForSelector(\`${selector(x.target)}\`, {hidden: ${x.value}})`,
     };
 
     /**
@@ -163,6 +172,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
     const header =
         "// Script Name: {_SCRIPT_NAME_}\n\n" +
         "const helper = require('../helpers/helper');\n" +
+        "const helper_advanced = require('../helpers/advanced_helpers');\n" +
         "const puppeteer = require('puppeteer');\n\n" +
         "const puppetTest = async (output) => {\n" +
         "const EXTENSION_REQUIRED = false;\n" + // default value of false since we assume that the majority of tests are not extension based
@@ -171,7 +181,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
         "if (EXTENSION_REQUIRED) args.push(...[`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`])\n" +
         "let browser = await puppeteer.launch({ headless: false, defaultViewport: { width: 1920, height: 1080 }, args: args});\n\n" +
         "const page = await browser.newPage();\n" +
-        "await page.setDefaultNavigationTimeout(5000);\n" +
+        "await page.setDefaultTimeout(5000);\n" +
         "let waitNotNeeded = [];\n" +
         "let verifyFailed = [];\n\n"
 
@@ -219,6 +229,7 @@ const puppeteer = function (scriptName, isWithComment = false) {
             let modifiedOutput = "";
             let waitCommands = ['click', 'sendkeys', 'submit'];
             if (waitCommands.includes(command.toLowerCase())) waitCnt++;
+            if (command.toLowerCase() == "capturescreenshot" || command.toLowerCase() == "captureentirepagescreenshot") screenshotCnt++;
             modifiedOutput = `//[C#${commandCnt}]\n${cmdString}`;
             commandCnt++;
             

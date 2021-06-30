@@ -206,6 +206,18 @@ function createKrMenus() {
         documentUrlPatterns: ["<all_urls>"],
         contexts: ["all"]
     });
+    browser.contextMenus.create({
+        id: "waitForSelector",
+        title: "waitForSelector",
+        documentUrlPatterns: ["<all_urls>"],
+        contexts: ["all"]
+    });
+    browser.contextMenus.create({
+        id: "waitForConsole",
+        title: "waitForConsole",
+        documentUrlPatterns: ["<all_urls>"],
+        contexts: ["all"]
+    });
 }
 
 var port;

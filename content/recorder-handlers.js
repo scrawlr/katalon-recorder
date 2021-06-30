@@ -459,14 +459,30 @@ Recorder.addEventHandler('contextMenu', 'contextmenu', function(event) {
     var tmpTitle = normalizeSpaces(event.target.ownerDocument.title);
     var self = this;
     myPort.onMessage.addListener(function portListener(m) {
-        if (m.cmd.includes("Text")) {
-            self.record(m.cmd, tmpText, tmpVal);
-        } else if (m.cmd.includes("Title")) {
-            self.record(m.cmd, [[tmpTitle]], '');
-        } else if (m.cmd.includes("Value")) {
-            self.record(m.cmd, tmpText, getInputValue(event.target));
-        } else if (m.cmd.includes('waitFor')) {
-            self.record(m.cmd, tmpText, '');
+        console.log(tmpText);
+        let recorded = false; // Want to prioritize the below commands
+        let custom = ['waitForConsole', 'waitForSelector'];
+        if (custom.includes(m.cmd)) {
+            if (m.cmd === 'waitForConsole') {
+                self.record(m.cmd, [["CURRENTLY NOT WORKING"]], '');
+            }
+            else if (m.cmd === 'waitForSelector') {
+                self.record(m.cmd, [["CHOOSE SELECTOR"], ...tmpText], 'HIDDEN: true/false');
+            }
+
+            recorded = true;
+        }
+
+        if (!recorded) {
+            if (m.cmd.includes("Text")) {
+                self.record(m.cmd, tmpText, tmpVal);
+            } else if (m.cmd.includes("Title")) {
+                self.record(m.cmd, [[tmpTitle]], '');
+            } else if (m.cmd.includes("Value")) {
+                self.record(m.cmd, tmpText, getInputValue(event.target));
+            } else if (m.cmd.includes('waitFor')) {
+                self.record(m.cmd, tmpText, '');
+            }
         }
         myPort.onMessage.removeListener(portListener);
     });
